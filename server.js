@@ -1,22 +1,20 @@
 //IMPORT
-const express = require("express");
-const mongoose = require("mongoose");
-const bodyParser = require("body-parser");
-const nodemailer = require("nodemailer");
-const cors = require("cors");
-const crypto = require("crypto");
-require("dotenv").config();
-const gis = require("g-i-s");
-const youtubesearchapi = require("youtube-search-api");
-const { YoutubeTranscript } = require("youtube-transcript");
-const {
-  GoogleGenerativeAI,
-  HarmBlockThreshold,
-  HarmCategory,
-} = require("@google/generative-ai");
-const { createApi } = require("unsplash-js");
-const showdown = require("showdown");
-const functions = require("firebase-functions");
+import express from 'express';
+import mongoose from 'mongoose';
+import bodyParser from 'body-parser';
+import nodemailer from 'nodemailer'
+import cors from 'cors'
+import crypto from 'crypto'
+import dotenv from 'dotenv';
+dotenv.config();
+import gis from 'g-i-s'
+import youtubesearchapi from 'youtube-search-api'
+import YoutubeTranscript from 'youtube-transcript'
+import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
+import { createApi } from 'unsplash-js';
+import showdown from 'showdown';
+import { https } from "firebase-functions";
+
 // const axios = require('axios');
 
 //INITIALIZE
@@ -83,6 +81,7 @@ const courseSchema = new mongoose.Schema({
   content: { type: String, required: true },
   type: String,
   mainTopic: String,
+  subtopic:String,
   photo: String,
   date: { type: Date, default: Date.now },
   end: { type: Date, default: Date.now },
@@ -456,19 +455,24 @@ app.post("/api/transcript", async (req, res) => {
 
 //STORE COURSE
 app.post("/api/course", async (req, res) => {
-  const { user, content, type, mainTopic } = req.body;
+  const { user, content, type, mainTopic, subtopic } = req.body;
 
   try {
+    const query = subtopic ? `${mainTopic} ${subtopic}` : mainTopic;
+
     const result = await unsplash.search.getPhotos({
-      query: mainTopic,
+      query: query,
       page: 1,
       perPage: 1,
       orientation: "landscape",
     });
+    
     const photos = result.response?.results;
     const photo = photos[0]?.urls?.regular;
-    const newCourse = new Course({ user, content, type, mainTopic, photo });
+
+    const newCourse = new Course({ user, content, type, mainTopic, subtopic, photo });
     await newCourse.save();
+    
     res.json({
       success: true,
       message: "Course created successfully",
@@ -664,4 +668,4 @@ const AppPort = process.env.PORT || 5000;
 app.listen(AppPort, () => {
   console.log(`Server is running on port ${AppPort}`);
 });
-exports.api = functions.https.onRequest(app);
+export const api = https.onRequest(app);
